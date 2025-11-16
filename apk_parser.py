@@ -4,12 +4,14 @@ import re
 from typing import List, Dict
 import gzip
 import io
+import os
 
 class APKParser:
     """Парсер для извлечения зависимостей APK пакетов Alpine Linux"""
     
-    def __init__(self, repository_url: str):
+    def __init__(self, repository_url: str, test_mode: bool = False):
         self.repository_url = repository_url.rstrip('/')
+        self.test_mode = test_mode
         self.package_cache = {}
     
     def get_package_dependencies(self, package_name: str) -> List[str]:
@@ -23,26 +25,52 @@ class APKParser:
             List[str]: Список прямых зависимостей
         """
         try:
-            print(f"🔍 Поиск информации о пакете: {package_name}")
-            
-            # Получаем индекс пакетов
-            packages_index = self._fetch_packages_index()
-            
-            # Ищем информацию о конкретном пакете
-            package_info = self._find_package_info(packages_index, package_name)
-            
-            if not package_info:
-                raise ValueError(f"Пакет '{package_name}' не найден в репозитории")
-            
-            # Извлекаем зависимости
-            dependencies = self._extract_dependencies(package_info)
-            
-            return dependencies
-            
-        except urllib.error.URLError as e:
-            raise ConnectionError(f"Ошибка подключения к репозиторию: {e}")
+            if self.test_mode:
+                return self._get_test_dependencies(package_name)
+            else:
+                return self._get_real_dependencies(package_name)
+                
         except Exception as e:
             raise RuntimeError(f"Ошибка при получении зависимостей: {e}")
+    
+    def _get_real_dependencies(self, package_name: str) -> List[str]:
+        """Получает зависимости из реального репозитория"""
+        print(f"🔍 Поиск информации о пакете: {package_name}")
+        
+        # Получаем индекс пакетов
+        packages_index = self._fetch_packages_index()
+        
+        # Ищем информацию о конкретном пакете
+        package_info = self._find_package_info(packages_index, package_name)
+        
+        if not package_info:
+            raise ValueError(f"Пакет '{package_name}' не найден в репозитории")
+        
+        # Извлекаем зависимости
+        return self._extract_dependencies(package_info)
+    
+    def _get_test_dependencies(self, package_name: str) -> List[str]:
+        """Получает зависимости из тестового репозитория"""
+        # Проверяем кэш
+        if package_name in self.package_cache:
+            return self.package_cache[package_name]
+        
+        # Читаем тестовый файл
+        if not os.path.exists(self.repository_url):
+            raise FileNotFoundError(f"Тестовый файл {self.repository_url} не найден")
+        
+        with open(self.repository_url, 'r', encoding='utf-8') as f:
+            content = f.read()
+        
+        # Ищем зависимости для пакета (формат: A: B C D)
+        lines = content.split('\n')
+        for line in lines:
+            if line.startswith(f"{package_name}:"):
+                deps = line.split(':', 1)[1].strip().split()
+                self.package_cache[package_name] = deps
+                return deps
+        
+        raise ValueError(f"Пакет '{package_name}' не найден в тестовом репозитории")
     
     def _fetch_packages_index(self) -> str:
         """Загружает индекс пакетов из репозитория"""
@@ -73,13 +101,6 @@ class APKParser:
     def _find_package_info(self, packages_index: str, package_name: str) -> Dict[str, str]:
         """
         Ищет информацию о конкретном пакете в индексе
-        
-        Args:
-            packages_index: Содержимое APKINDEX
-            package_name: Имя искомого пакета
-            
-        Returns:
-            Dict[str, str]: Информация о пакете
         """
         # Разбиваем индекс на пакеты (разделитель - пустая строка)
         packages = packages_index.strip().split('\n\n')
@@ -106,12 +127,6 @@ class APKParser:
     def _extract_dependencies(self, package_info: Dict[str, str]) -> List[str]:
         """
         Извлекает зависимости из информации о пакете
-        
-        Args:
-            package_info: Словарь с информацией о пакете
-            
-        Returns:
-            List[str]: Список зависимостей
         """
         dependencies = []
         
