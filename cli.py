@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 CLI-приложение для визуализации графа зависимостей
-Этап 3: Основные операции
+Этап 4: Дополнительные операции
 """
 
 import sys
@@ -14,19 +14,33 @@ from config_loader import ConfigLoader
 from apk_parser import APKParser
 from dependency_graph import DependencyGraph
 
-def display_graph(graph: dict, root_package: str):
+def display_graph(graph: dict, title: str):
     """Отображает граф зависимостей"""
-    print(f"\n🌳 Граф зависимостей для '{root_package}':")
+    print(f"\n{title}:")
+    if not graph:
+        print("  (пусто)")
+        return
+        
     for package, dependencies in graph.items():
         if dependencies:
             print(f"  {package} -> {', '.join(dependencies)}")
         else:
             print(f"  {package} -> (нет зависимостей)")
 
+def display_reverse_dependencies(reverse_deps: dict, target_package: str):
+    """Отображает обратные зависимости"""
+    print(f"\n🔄 Обратные зависимости для '{target_package}':")
+    if not reverse_deps:
+        print("  ⚠️ Обратные зависимости не найдены")
+        return
+        
+    for package, deps in reverse_deps.items():
+        print(f"  {package} зависит от {target_package}")
+
 def main():
     """Основная функция CLI-приложения"""
     print("=== Визуализатор графа зависимостей пакетов ===")
-    print("Этап 3: Основные операции")
+    print("Этап 4: Дополнительные операции")
     
     try:
         # Загрузка конфигурации
@@ -55,16 +69,22 @@ def main():
             test_mode=test_mode
         )
         
+        # Обычные зависимости
         graph = graph_builder.build_dependency_graph(config['package_name'])
+        display_graph(graph, f"🌳 Прямые зависимости для '{config['package_name']}'")
         
-        # Вывод результатов
-        display_graph(graph, config['package_name'])
+        # Обратные зависимости (НОВЫЙ ФУНКЦИОНАЛ ЭТАПА 4)
+        print(f"\n{'='*50}")
+        print("🔍 РЕЖИМ ОБРАТНЫХ ЗАВИСИМОСТЕЙ (ЭТАП 4)")
+        reverse_deps = graph_builder.find_reverse_dependencies(config['package_name'])
+        display_reverse_dependencies(reverse_deps, config['package_name'])
         
         # Статистика
         stats = graph_builder.get_statistics()
         print(f"\n📊 Статистика:")
         print(f"  Всего пакетов: {stats['total_packages']}")
         print(f"  Максимальная глубина: {stats['max_depth']}")
+        print(f"  Найдено обратных зависимостей: {len(reverse_deps)}")
         
         if graph_builder.cycles_detected:
             print(f"  ⚠️ Обнаружены циклические зависимости:")
@@ -77,7 +97,7 @@ def main():
                                if graph_builder._should_filter_package(pkg))
             print(f"  Отфильтровано пакетов: {filtered_count}")
         
-        print(f"\n✅ Граф построен успешно!")
+        print(f"\n✅ Все операции выполнены успешно!")
         
     except FileNotFoundError as e:
         print(f"❌ Ошибка: {e}")
