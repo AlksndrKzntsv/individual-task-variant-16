@@ -1,8 +1,8 @@
 {
-    "package_name": "example-package",
-    "repository_url": "https://github.com/example/repo",
+    "package_name": "nginx",
+    "repository_url": "https://dl-cdn.alpinelinux.org/alpine/v3.18/main",
     "test_repository_mode": false,
     "ascii_tree_output": true,
     "max_dependency_depth": 3,
-    "package_filter": "test"
+    "package_filter": ""
 }
