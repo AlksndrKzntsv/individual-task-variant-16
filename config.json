@@ -3,6 +3,6 @@
     "repository_url": "test_repository.txt",
     "test_repository_mode": true,
     "ascii_tree_output": true,
-    "max_dependency_depth": 3,
+    "max_dependency_depth": 4,
     "package_filter": ""
 }

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 CLI-приложение для визуализации графа зависимостей
-Этап 4: Дополнительные операции
+Этап 5: Визуализация
 """
 
 import sys
@@ -13,6 +13,7 @@ sys.path.append(os.path.dirname(__file__))
 from config_loader import ConfigLoader
 from apk_parser import APKParser
 from dependency_graph import DependencyGraph
+from visualizer import GraphVisualizer
 
 def display_graph(graph: dict, title: str):
     """Отображает граф зависимостей"""
@@ -40,7 +41,7 @@ def display_reverse_dependencies(reverse_deps: dict, target_package: str):
 def main():
     """Основная функция CLI-приложения"""
     print("=== Визуализатор графа зависимостей пакетов ===")
-    print("Этап 4: Дополнительные операции")
+    print("Этап 5: Визуализация")
     
     try:
         # Загрузка конфигурации
@@ -73,11 +74,28 @@ def main():
         graph = graph_builder.build_dependency_graph(config['package_name'])
         display_graph(graph, f"🌳 Прямые зависимости для '{config['package_name']}'")
         
-        # Обратные зависимости (НОВЫЙ ФУНКЦИОНАЛ ЭТАПА 4)
-        print(f"\n{'='*50}")
-        print("🔍 РЕЖИМ ОБРАТНЫХ ЗАВИСИМОСТЕЙ (ЭТАП 4)")
+        # Обратные зависимости
         reverse_deps = graph_builder.find_reverse_dependencies(config['package_name'])
         display_reverse_dependencies(reverse_deps, config['package_name'])
+        
+        # ВИЗУАЛИЗАЦИЯ (НОВЫЙ ФУНКЦИОНАЛ ЭТАПА 5)
+        print(f"\n{'='*50}")
+        print("🎨 ВИЗУАЛИЗАЦИЯ (ЭТАП 5)")
+        
+        visualizer = GraphVisualizer()
+        
+        # 1. PlantUML визуализация
+        plantuml_code = visualizer.generate_plantuml(graph, config['package_name'], reverse_deps)
+        print(f"\n📊 PlantUML описание графа:")
+        print("```plantuml")
+        print(plantuml_code)
+        print("```")
+        
+        # 2. ASCII-дерево (если включено в конфигурации)
+        if config['ascii_tree_output']:
+            ascii_tree = visualizer.generate_ascii_tree(graph, config['package_name'])
+            print(f"\n🌲 ASCII-дерево зависимостей:")
+            print(ascii_tree)
         
         # Статистика
         stats = graph_builder.get_statistics()
